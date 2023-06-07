@@ -5,10 +5,10 @@ from kafka import KafkaProducer
 
 # Define kafka broker details
 kafka_broker = 'localhost:9092'
-topic = 'TfL-bus-arrival'
+bus_arrival_topic = 'TfL-bus-arrival'
 
 # Define the target url
-url = "https://api.tfl.gov.uk/Stoppoint?lat=51.4929&lon=" \
+bus_arrival_url = "https://api.tfl.gov.uk/Stoppoint?lat=51.4929&lon=" \
       "0.053929&stoptypes=NaptanBusCoachStation," \
       "NaptanPublicBusCoachTram"
 
@@ -24,8 +24,10 @@ def get_bus_arrivals(url):
     try:
         response = requests.get(url)
     except:
-        raise Exception("Error fetching data: {}".format(response.status_code))
-        #if response.status_code == 200:, response.json
+        # raise Exception("Error fetching data: {}".format(response.status_code))
+        response = {'status_code':500}
+        raise Exception('Error fetching data')
+    #response.json
     return response
 
 def stream_bus_arrivals():
@@ -33,7 +35,7 @@ def stream_bus_arrivals():
         count = 1
         arrivals = get_bus_arrivals()
         print(arrivals)
-        producer.send(topic, arrivals)
+        producer.send(bus_arrival_topic, arrivals)
         producer.flush()
         sleep(60)
 
