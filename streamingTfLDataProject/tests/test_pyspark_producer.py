@@ -1,6 +1,6 @@
 from unittest.mock import patch
 import pytest
-from playground import get_data, stream_data
+from streamingTfLDataProject.Producer.pyspark_producer import get_data, stream_data
 
 def test_if_passed_empty_url():
     url = ''
