@@ -18,10 +18,11 @@ def get_data(url):
     response = ''
     try:
         response = requests.get(url)
-    except Exception as e:
+    except Exception:
         response = {'status_code':500}
-        raise e('Error fetching data')
+        raise Exception('Error fetching data')
     return response
+
 
 def stream_data(topic, url):
     while True:
