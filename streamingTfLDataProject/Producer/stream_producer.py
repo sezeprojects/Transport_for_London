@@ -1,4 +1,4 @@
-from playground import stream_data
+from streamingTfLDataProject.Producer.pyspark_producer import stream_data
 
 
 # bus_arrivals

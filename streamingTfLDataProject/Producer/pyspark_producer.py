@@ -5,12 +5,7 @@ from kafka import KafkaProducer
 
 # Define kafka broker details
 kafka_broker = 'localhost:9092'
-topic = 'TfL-bus-arrival'
 
-# Define the target url
-url = "https://api.tfl.gov.uk/Stoppoint?lat=51.4929&lon=" \
-      "0.053929&stoptypes=NaptanBusCoachStation," \
-      "NaptanPublicBusCoachTram"
 
 # Set up the kafka producer
 # producer = KafkaProducer(bootstrap_servers=kafka_broker)
@@ -19,23 +14,20 @@ producer = KafkaProducer(value_serializer=lambda m: json.dumps(m).encode('ascii'
 # Fetch the improvised streamed data and send to kafka
 
 
-def get_bus_arrivals():
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        raise Exception("Error getting bus arrivals: {}".format(response.status_code))
+def get_data(url):
+    response = ''
+    try:
+        response = requests.get(url)
+    except Exception as e:
+        response = {'status_code':500}
+        raise e('Error fetching data')
+    return response
 
-
-def stream_bus_arrivals():
+def stream_data(topic, url):
     while True:
         count = 1
-        arrivals = get_bus_arrivals()
-        print(arrivals)
-        producer.send(topic, arrivals)
+        data = get_data(url).json()
+        print(data)
+        producer.send(topic, data)
         producer.flush()
         sleep(60)
-
-
-if __name__ == "__main__":
-    stream_bus_arrivals()
