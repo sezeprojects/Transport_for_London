@@ -9,7 +9,7 @@ kafka_broker = 'localhost:9092'
 
 # Set up the kafka producer
 # producer = KafkaProducer(bootstrap_servers=kafka_broker)
-producer = KafkaProducer(value_serializer=lambda m: json.dumps(m).encode('ascii'))
+producer = KafkaProducer(value_serializer=lambda m: json.dumps(m).encode("ascii"))
 
 # Fetch the improvised streamed data and send to kafka
 
@@ -19,7 +19,7 @@ def get_data(url):
     try:
         response = requests.get(url)
     except Exception:
-        response = {'status_code':500}
+        response = {'status_code': 500}
         raise Exception('Error fetching data')
     return response
 
