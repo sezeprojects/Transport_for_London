@@ -1,7 +1,4 @@
-import concurrent.futures
-
 from Transport_for_London.streamingTfLDataProject.Producer.pyspark_producer import stream_data
-from multiprocessing import Process, set_start_method
 import threading
 
 
@@ -34,35 +31,30 @@ def start_stream_data(topic, url):
 
 
 if __name__ == '__main__':
-    # Set the start method to 'spawn' on macOS
-    # set_start_method('spawn')
-
     # Start the remaining threads
-    processes = []
+    threads = []
 
     # Start bus_arrival process
-    bus_arrival_process = threading.Thread(target=start_stream_data, args=(bus_arrival_topic, bus_arrival_url))
-    bus_arrival_process.start()
-    processes.append(bus_arrival_process)
+    bus_arrival_thread = threading.Thread(target=start_stream_data, args=(bus_arrival_topic, bus_arrival_url))
+    bus_arrival_thread.start()
+    threads.append(bus_arrival_thread)
 
     # Start crowding process
-    crowding_process = threading.Thread(target=start_stream_data, args=(crowding_topic, crowding_url))
-    crowding_process.start()
-    processes.append(crowding_process)
+    crowding_thread = threading.Thread(target=start_stream_data, args=(crowding_topic, crowding_url))
+    crowding_thread.start()
+    threads.append(crowding_thread)
 
     # Start valid_severity process
-    valid_severity_process = threading.Thread(target=start_stream_data, args=(valid_severity_topic, valid_severity_url))
-    valid_severity_process.start()
-    processes.append(valid_severity_process)
+    valid_severity_thread = threading.Thread(target=start_stream_data, args=(valid_severity_topic, valid_severity_url))
+    valid_severity_thread.start()
+    threads.append(valid_severity_thread)
 
     # Create and start threads for each naptan_id and naptan_topic pair
     for bus_naptan_id, nap_id_topic in zip(naptan_ids, naptan_id_topics):
         process = threading.Thread(target=stream_stop_time, args=(bus_naptan_id, nap_id_topic))
         process.start()
-        processes.append(process)
-    # with concurrent.futures.ThreadPoolExecutor(max_workers=len(naptan_ids)) as executor:
-    #     executor.map(stream_stop_time, range(len(naptan_ids)))
+        threads.append(process)
 
     # Wait for all threads to complete
-    for process in processes:
-        process.join()
+    for thread in threads:
+        thread.join()
