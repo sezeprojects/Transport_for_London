@@ -2,7 +2,7 @@ from pyspark.sql import SparkSession
 from pyspark.sql.types import IntegerType, StructType, StructField, StringType, ArrayType, FloatType, \
     BooleanType, \
     DoubleType
-from pyspark.sql.functions import from_json, col, explode
+from pyspark.sql.functions import from_json, col, explode, monotonically_increasing_id
 import os
 
 os.environ['PYSPARK_SUBMIT_ARGS'] = "--packages org.apache.spark:" \
@@ -151,32 +151,46 @@ json_df = json_df.withColumn("json_struct", from_json("json_string", json_schema
 # Extract the value of the stopPoints field
 json_df = json_df.withColumn("daysOfWeek", col("json_struct.daysOfWeek"))
 
-# json_df.printSchema()
-# json_df.show()
+json_df.printSchema()
+json_df.show()
 
 days_of_week = json_df.select("daysOfWeek")
-# days_of_week.printSchema()
-# days_of_week.show()
+days_of_week.printSchema()
+days_of_week.show()
 
 # Accessing values from 'crowding_value' array
-crowding_df = days_of_week.select(col("daysOfWeek.dayOfWeek").alias("dayOfWeek"),
-                                  col("daysOfWeek.amPeakTimeBand").alias("amPeakTimeBand"),
-                                  col("daysOfWeek.pmPeakTimeBand").alias("pmPeakTimeBand"),
-                                  col("daysOfWeek.timeBands").alias("timeBands")
-                                  )
-# crowding_df.show()
+crowding_df = days_of_week.select(
+    col("daysOfWeek.dayOfWeek").alias("dayOfWeek"),
+    col("daysOfWeek.amPeakTimeBand").alias("amPeakTimeBand"),
+    col("daysOfWeek.pmPeakTimeBand").alias("pmPeakTimeBand"),
+    col("daysOfWeek.timeBands").alias("timeBands")
+)
 
-time_band_df = crowding_df.select(explode("timeBands").alias("timeBand_data"))
+crowding_df.show()
 
-# Accessing the nested fields
-time_band_df = time_band_df.select("timeBand_data.timeBand", "timeBand_data.percentageOfBaseLine")
 
-# time_band_df.show()
+exploded_df = crowding_df.withColumn("dayOfWeek_exploded", explode(col("dayOfWeek"))) \
+    .withColumn("amPeakTimeBand_exploded", explode(col("amPeakTimeBand"))) \
+    .withColumn("pmPeakTimeBand_exploded", explode(col("pmPeakTimeBand"))) \
+    .withColumn("timeBands_exploded", explode(col("timeBands")))
+
+exploded_df = exploded_df.drop('dayOfWeek', 'amPeakTimeBand', 'pmPeakTimeBand', 'timeBands')
+exploded_df = exploded_df.withColumn('crowding_id', monotonically_increasing_id())
+
+exploded_df.printSchema()
+exploded_df.show()
+
+time_band_df = exploded_df.select(explode("timeBands_exploded").alias("timeBand"), 'crowding_id')
+time_band_df.printSchema()
+
+time_band_df = time_band_df.select('crowding_id', time_band_df['timeBand.timeBand'].alias('time'),
+                                   time_band_df['timeBand.percentageOfBaseLine'].alias('percentageOfBaseLine'))
+time_band_df = time_band_df.withColumn('timeBound_id', monotonically_increasing_id())
 
 df = spark.read \
   .format("kafka") \
   .option("kafka.bootstrap.servers", "localhost:9092") \
-  .option("subscribe", 'stop-DE') \
+  .option("subscribe", 'stop-DC') \
   .load()
 
 # df.printSchema()
@@ -236,5 +250,20 @@ json_struct_df.printSchema()
 json_struct_df = json_struct_df.drop("value", "json_string", "json_array", "exploded_array")
 json_struct_df.show()
 
-arrival_info_df = json_struct_df.select("json_struct.stationName")
+arrival_info_df = json_struct_df.select(
+    col("json_struct.id").alias("id"),
+    col("json_struct.vehicleId").alias("vehicleId"),
+    col("json_struct.naptanId").alias("naptanId"),
+    col("json_struct.stationName").alias("stationName"),
+    col("json_struct.lineId").alias("lineId"),
+    col("json_struct.platformName").alias("platformName"),
+    col("json_struct.direction").alias("direction"),
+    col("json_struct.destinationName").alias("destinationName"),
+    col("json_struct.timestamp").alias("timestamp"),
+    col("json_struct.timeToStation").alias("timeToStation"),
+    col("json_struct.towards").alias("towards"),
+    col("json_struct.expectedArrival").alias("expectedArrival"),
+    col("json_struct.timeToLive").alias("timeToLive"),
+    col("json_struct.modeName").alias("modeName")
+)
 arrival_info_df.show()
